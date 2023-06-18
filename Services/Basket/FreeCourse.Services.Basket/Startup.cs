@@ -13,6 +13,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
+using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
@@ -47,13 +48,20 @@ namespace FreeCourse.Services.Basket
             services.AddScoped<IBasketService, BasketService>();
             services.Configure<RedisSettings>(Configuration.GetSection("RedisSettings"));
 
-            services.AddSingleton<RedisService>(sp =>
+            services.AddSingleton(sp =>
             {
                 var redisSettings = sp.GetRequiredService<IOptions<RedisSettings>>().Value;
 
-                var redis = new RedisService(redisSettings.Host, redisSettings.Port);
+                var redis = new RedisService();
+                ConfigurationOptions options = new ConfigurationOptions()
+                {
+                    AbortOnConnectFail = false,
+                    EndPoints = {redisSettings.Host},
+                    Password = redisSettings.Password,
 
-                redis.Connect();
+                };
+
+                redis.Connect(options);
 
                 return redis;
             });
@@ -62,6 +70,7 @@ namespace FreeCourse.Services.Basket
             {
                 opt.Filters.Add(new AuthorizeFilter(requireAuthorizePolicy));
             });
+
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "FreeCourse.Services.Basket", Version = "v1" });
