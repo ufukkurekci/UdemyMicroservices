@@ -59,5 +59,20 @@ namespace FreeCourse.IdentityServer.Controllers
 
             return Ok(new { Id = user.Id, UserName = user.UserName, Email = user.Email, City = user.City });
         }
+        [HttpDelete]
+        public async Task<IActionResult> DeleteUser()
+        {
+			var userIdClaim = User.Claims.FirstOrDefault(x => x.Type == JwtRegisteredClaimNames.Sub);
+
+            if(userIdClaim == null) return BadRequest();
+
+			var user = await _userManager.FindByIdAsync(userIdClaim.Value);
+
+			if (user == null) return BadRequest();
+
+			await _userManager.DeleteAsync(user);
+
+            return NoContent();
+		}
     }
 }
